@@ -15,7 +15,7 @@ const Toolbar = ({onSelectAllClicked,
       <div className="col-md-12">
         <p className="pull-right">
           <span className="badge badge">{unreadMessageCount}</span>
-          unread messages
+          unread message{unreadMessageCount !== 1 && 's'}
         </p>
 
         <button className="btn btn-default" onClick={onSelectAllClicked}>
