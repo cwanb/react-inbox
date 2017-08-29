@@ -66,7 +66,6 @@ const seedMessages = [{
 ];
 
 class App extends Component {
-
   constructor(props) {
     super(props)
     this.state = {
@@ -113,7 +112,6 @@ class App extends Component {
 
   onMarkMessagesClicked = (isMarkingRead) => {
     var stateCopy = Object.assign({}, this.state)
-
     stateCopy.messageList.map(message => message.selected ? message.read = isMarkingRead : '')
 
     this.setState({
@@ -131,6 +129,9 @@ class App extends Component {
 
   onAddLabelClicked = (e) => {
     var stateCopy = Object.assign({}, this.state)
+    //guard against the "Apply label" option
+    if(e.target.selectedIndex === 0) return
+
     const selectedLabel = e.target.options[e.target.selectedIndex].text
     stateCopy.messageList.map(message => message.selected && !message.labels.find(label => label === selectedLabel) ? message.labels.push(selectedLabel) : '')
 
@@ -149,7 +150,12 @@ class App extends Component {
     })
   }
 
-
+  selectedState = () => {
+    const selectedCount = this.state.messageList.filter(message => message.selected).length
+    if(selectedCount === 0) return 'none' //none selected
+    else if(selectedCount === this.state.messageList.length) return 'all' //all selected
+    else return 'some' //some selected
+  }
 
   render() {
     return (
@@ -160,7 +166,8 @@ class App extends Component {
           onDeleteMessagesClicked={this.onDeleteMessagesClicked}
           onAddLabelClicked={this.onAddLabelClicked}
           onRemoveLabelClicked={this.onRemoveLabelClicked}
-          unreadMessageCount={this.state.messageList.filter(message => !message.read).length}/>
+          unreadMessageCount={this.state.messageList.filter(message => !message.read).length}
+          selectedState={this.selectedState()} />
         <MessageList
           messageList={this.state.messageList}
           onMessagesStarredToggled={this.onMessagesStarredToggled}
