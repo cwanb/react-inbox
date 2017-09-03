@@ -1,42 +1,42 @@
 import React, {Component} from 'react'
 import Toolbar from './components/Toolbar'
 import MessageList from './components/MessageList'
-import BaseURL from './helpers/BaseURL'
+import Compose from './components/Compose'
 import './App.css'
 
 class App extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      messageList: []
+      messageList: [],
+      composeMessageDisplayed: false
     }
   }
 
   async componentDidMount() {
-      const initialMessages = await fetch(`${BaseURL}/api/messages`)
+      const initialMessages = await fetch('/api/messages')
       const json = await initialMessages.json()
       this.setState({messageList: json._embedded.messages})
   }
 
-  onMessagesStarredToggled = (index) => {
+  onMessagesStarredToggled = async (index) => {
     let stateCopy = Object.assign({}, this.state)
-    stateCopy.messageList[index].starred = !stateCopy.messageList[index].starred
-      this.saveStarToggledItem(stateCopy.messageList[index])
+    let item = stateCopy.messageList[index]
+    item.starred = !item.starred
+
+    const request = {messageIds: [item.id], command: 'star', star: item.starred}
+    const response = await fetch('/api/messages', {
+        method: 'PATCH',
+        body: JSON.stringify(request),
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+    })
+
     this.setState({
       messageList: stateCopy.messageList
     })
-  }
-
-  async saveStarToggledItem(item) {
-      const request = {messageIds: [item.id], command: 'star', star: item.starred}
-      const response = await fetch('http://localhost:8083/api/messages', {
-          method: 'PATCH',
-          body: JSON.stringify(request),
-          headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-          }
-      })
   }
 
   onMessageSelectToggled = (index) => {
@@ -81,7 +81,7 @@ class App extends Component {
       const messageIdsList = messageList.filter(message => message.read === isMarkingRead && message.selected)
 
       const request = {messageIds: messageIdsList.map(message => message.id), command: 'read', read: isMarkingRead}
-      const response = await fetch('http://localhost:8083/api/messages', {
+      const response = await fetch('/api/messages', {
           method: 'PATCH',
           body: JSON.stringify(request),
           headers: {
@@ -105,7 +105,7 @@ class App extends Component {
         const selectedMessagesList = messageList.filter(message => message.selected)
 
         const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'delete'}
-        const response = await fetch('http://localhost:8083/api/messages', {
+        const response = await fetch('/api/messages', {
             method: 'PATCH',
             body: JSON.stringify(request),
             headers: {
@@ -123,16 +123,16 @@ class App extends Component {
     const selectedLabel = e.target.options[e.target.selectedIndex].text
     stateCopy.messageList.map(message => message.selected && !message.labels.find(label => label === selectedLabel) ? message.labels.push(selectedLabel) : '')
 
-     this.saveAddedLabel(selectedLabel, stateCopy.messageList)
+    this.saveAddedLabel(selectedLabel, stateCopy.messageList)
     this.setState({
       messageList: stateCopy.messageList
     })
   }
 
-  async saveAddedLabel(selectedLabel, messageList) {
+  saveAddedLabel = async (selectedLabel, messageList) => {
       const selectedMessagesList = messageList.filter(message => message.selected && message.labels.find(label => label === selectedLabel))
       const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'addLabel', label: selectedLabel}
-      const response = await fetch('http://localhost:8083/api/messages', {
+      const response = await fetch('/api/messages', {
           method: 'PATCH',
           body: JSON.stringify(request),
           headers: {
@@ -156,7 +156,7 @@ class App extends Component {
     async saveRemovedLabel(selectedLabel, messageList) {
         const selectedMessagesList = messageList.filter(message => message.selected && !message.labels.find(label => label === selectedLabel))
         const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'removeLabel', label: selectedLabel}
-        const response = await fetch('http://localhost:8083/api/messages', {
+        const response = await fetch('/api/messages', {
             method: 'PATCH',
             body: JSON.stringify(request),
             headers: {
@@ -166,12 +166,35 @@ class App extends Component {
         })
     }
 
-
     selectedState = () => {
         const selectedCount = this.state.messageList.filter(message => message.selected).length
         if(selectedCount === 0) return 'none' //none selected
         else if(selectedCount === this.state.messageList.length) return 'all' //all selected
         else return 'some' //some selected
+  }
+
+  composeButtonClicked = () => {
+    this.setState({composeMessageDisplayed: !this.state.composeMessageDisplayed})
+  }
+
+  onSendMessageClick = async (subject, body) => {
+    const request = {"subject": subject, "body": body}
+    const response = await fetch('/api/messages', {
+        method: 'POST',
+        body: JSON.stringify(request),
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+    })
+    const responseJson = await response.json()
+    let stateCopy = {...this.state}
+    let {_links, ...newMessage} = responseJson
+    stateCopy.messageList.push(newMessage)
+    this.setState({
+      messageList: stateCopy.messageList,
+      composeMessageDisplayed: false
+    })
   }
 
   render() {
@@ -184,7 +207,9 @@ class App extends Component {
           onAddLabelClicked={this.onAddLabelClicked}
           onRemoveLabelClicked={this.onRemoveLabelClicked}
           unreadMessageCount={this.state.messageList.filter(message => !message.read).length}
-          selectedState={this.selectedState()} />
+          selectedState={this.selectedState()}
+          composeButtonClicked={this.composeButtonClicked}/>
+        {this.state.composeMessageDisplayed && <Compose onSendMessageClick={this.onSendMessageClick}/>}
         <MessageList
           messageList={this.state.messageList}
           onMessagesStarredToggled={this.onMessagesStarredToggled}

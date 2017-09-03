@@ -6,8 +6,11 @@ const Toolbar = ({onSelectAllClicked,
                 onAddLabelClicked,
                 onRemoveLabelClicked,
                 unreadMessageCount,
-                selectedState}) => {
-  const selectIconStyle = selectedState === 'none' ? 'fa-square-o' : selectedState === 'all' ? 'fa-check-square-o' : 'fa-minus-square-o'
+                selectedState,
+                composeButtonClicked}) => {
+  const selectIconStyle = selectedState === 'none'  ? 'fa-square-o' :
+                          selectedState === 'all'   ? 'fa-check-square-o' :
+                                                      'fa-minus-square-o'
   const readButtonsDisabled = selectedState === 'none'
 
   return (
@@ -17,6 +20,10 @@ const Toolbar = ({onSelectAllClicked,
           <span className="badge badge">{unreadMessageCount}</span>
           unread message{unreadMessageCount !== 1 && 's'}
         </p>
+
+        <a className="btn btn-danger" onClick={composeButtonClicked}>
+          <i className="fa fa-plus"></i>
+        </a>
 
         <button className="btn btn-default" onClick={onSelectAllClicked}>
           <i className={`fa ${selectIconStyle}`}></i>
