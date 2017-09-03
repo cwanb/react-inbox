@@ -1,89 +1,46 @@
-import React, {
-  Component
-} from 'react'
+import React, {Component} from 'react'
 import Toolbar from './components/Toolbar'
 import MessageList from './components/MessageList'
+import BaseURL from './helpers/BaseURL'
 import './App.css'
-
-const seedMessages = [{
-    "id": 1,
-    "subject": "You can't input the protocol without calculating the mobile RSS protocol!",
-    "read": false,
-    "starred": true,
-    "labels": ["dev", "personal"]
-  },
-  {
-    "id": 2,
-    "subject": "connecting the system won't do anything, we need to input the mobile AI panel!",
-    "read": false,
-    "starred": false,
-    "selected": true,
-    "labels": []
-  },
-  {
-    "id": 3,
-    "subject": "Use the 1080p HTTP feed, then you can parse the cross-platform hard drive!",
-    "read": false,
-    "starred": true,
-    "labels": ["dev"]
-  },
-  {
-    "id": 4,
-    "subject": "We need to program the primary TCP hard drive!",
-    "read": true,
-    "starred": false,
-    "selected": true,
-    "labels": []
-  },
-  {
-    "id": 5,
-    "subject": "If we override the interface, we can get to the HTTP feed through the virtual EXE interface!",
-    "read": false,
-    "starred": false,
-    "labels": ["personal"]
-  },
-  {
-    "id": 6,
-    "subject": "We need to back up the wireless GB driver!",
-    "read": true,
-    "starred": true,
-    "labels": []
-  },
-  {
-    "id": 7,
-    "subject": "We need to index the mobile PCI bus!",
-    "read": true,
-    "starred": false,
-    "labels": ["dev", "personal"]
-  },
-  {
-    "id": 8,
-    "subject": "If we connect the sensor, we can get to the HDD port through the redundant IB firewall!",
-    "read": true,
-    "starred": true,
-    "labels": []
-  }
-];
 
 class App extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      messageList: seedMessages
+      messageList: []
     }
   }
 
-  onMessagesStarredToggled = (index) => {
-    var stateCopy = Object.assign({}, this.state)
-    stateCopy.messageList[index].starred = !stateCopy.messageList[index].starred
+  async componentDidMount() {
+      const initialMessages = await fetch(`${BaseURL}/api/messages`)
+      const json = await initialMessages.json()
+      this.setState({messageList: json._embedded.messages})
+  }
 
+  onMessagesStarredToggled = (index) => {
+    let stateCopy = Object.assign({}, this.state)
+    stateCopy.messageList[index].starred = !stateCopy.messageList[index].starred
+      this.saveStarToggledItem(stateCopy.messageList[index])
     this.setState({
       messageList: stateCopy.messageList
     })
   }
 
+  async saveStarToggledItem(item) {
+      const request = {messageIds: [item.id], command: 'star', star: item.starred}
+      const response = await fetch('http://localhost:8083/api/messages', {
+          method: 'PATCH',
+          body: JSON.stringify(request),
+          headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+          }
+      })
+  }
+
   onMessageSelectToggled = (index) => {
-    var stateCopy = Object.assign({}, this.state)
+    let stateCopy = Object.assign({}, this.state)
     stateCopy.messageList[index].selected = !stateCopy.messageList[index].selected
 
     this.setState({
@@ -92,7 +49,7 @@ class App extends Component {
   }
 
   onSelectAllClicked = () => {
-    var stateCopy = Object.assign({}, this.state)
+    let stateCopy = Object.assign({}, this.state)
 
     //if any messages are not starred, star them all, else unstar them all
     if (stateCopy.messageList.find(message => !message.selected)) {
@@ -111,50 +68,110 @@ class App extends Component {
   }
 
   onMarkMessagesClicked = (isMarkingRead) => {
-    var stateCopy = Object.assign({}, this.state)
+    let stateCopy = Object.assign({}, this.state)
     stateCopy.messageList.map(message => message.selected ? message.read = isMarkingRead : '')
+    this.saveMessagesRead(isMarkingRead, stateCopy.messageList)
 
     this.setState({
       messageList: stateCopy.messageList
     })
   }
 
+  async saveMessagesRead(isMarkingRead, messageList) {
+      const messageIdsList = messageList.filter(message => message.read === isMarkingRead && message.selected)
+
+      const request = {messageIds: messageIdsList.map(message => message.id), command: 'read', read: isMarkingRead}
+      const response = await fetch('http://localhost:8083/api/messages', {
+          method: 'PATCH',
+          body: JSON.stringify(request),
+          headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+          }
+      })
+  }
+
   onDeleteMessagesClicked = () => {
-    var stateCopy = Object.assign({}, this.state)
+    let stateCopy = {...this.state}
+
+      this.deleteMessages(stateCopy.messageList)
 
     this.setState({
       messageList: stateCopy.messageList.filter(message => !message.selected)
     })
   }
 
+    async deleteMessages(messageList) {
+        const selectedMessagesList = messageList.filter(message => message.selected)
+
+        const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'delete'}
+        const response = await fetch('http://localhost:8083/api/messages', {
+            method: 'PATCH',
+            body: JSON.stringify(request),
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            }
+        })
+    }
+
   onAddLabelClicked = (e) => {
-    var stateCopy = Object.assign({}, this.state)
+    let stateCopy = Object.assign({}, this.state)
     //guard against the "Apply label" option
     if(e.target.selectedIndex === 0) return
 
     const selectedLabel = e.target.options[e.target.selectedIndex].text
     stateCopy.messageList.map(message => message.selected && !message.labels.find(label => label === selectedLabel) ? message.labels.push(selectedLabel) : '')
 
+     this.saveAddedLabel(selectedLabel, stateCopy.messageList)
     this.setState({
       messageList: stateCopy.messageList
     })
+  }
+
+  async saveAddedLabel(selectedLabel, messageList) {
+      const selectedMessagesList = messageList.filter(message => message.selected && message.labels.find(label => label === selectedLabel))
+      const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'addLabel', label: selectedLabel}
+      const response = await fetch('http://localhost:8083/api/messages', {
+          method: 'PATCH',
+          body: JSON.stringify(request),
+          headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+          }
+      })
   }
 
   onRemoveLabelClicked = (e) => {
-    var stateCopy = Object.assign({}, this.state)
+    let stateCopy = Object.assign({}, this.state)
     const selectedLabel = e.target.options[e.target.selectedIndex].text
     stateCopy.messageList.map(message => message.selected ? message.labels = message.labels.filter(label => label !== selectedLabel) : '')
+    this.saveRemovedLabel(selectedLabel, stateCopy.messageList)
 
-    this.setState({
+      this.setState({
       messageList: stateCopy.messageList
     })
   }
 
-  selectedState = () => {
-    const selectedCount = this.state.messageList.filter(message => message.selected).length
-    if(selectedCount === 0) return 'none' //none selected
-    else if(selectedCount === this.state.messageList.length) return 'all' //all selected
-    else return 'some' //some selected
+    async saveRemovedLabel(selectedLabel, messageList) {
+        const selectedMessagesList = messageList.filter(message => message.selected && !message.labels.find(label => label === selectedLabel))
+        const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'removeLabel', label: selectedLabel}
+        const response = await fetch('http://localhost:8083/api/messages', {
+            method: 'PATCH',
+            body: JSON.stringify(request),
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            }
+        })
+    }
+
+
+    selectedState = () => {
+        const selectedCount = this.state.messageList.filter(message => message.selected).length
+        if(selectedCount === 0) return 'none' //none selected
+        else if(selectedCount === this.state.messageList.length) return 'all' //all selected
+        else return 'some' //some selected
   }
 
   render() {
