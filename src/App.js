@@ -1,42 +1,22 @@
 import React, {Component} from 'react'
+import { connect } from 'react-redux'
+import { bindActionCreators } from 'redux'
 import Toolbar from './components/Toolbar'
 import MessageList from './components/MessageList'
 import Compose from './components/Compose'
+import { toggleMessageStarred } from './actions/messageListActions'
 import './App.css'
 
 class App extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      messageList: [],
       composeMessageDisplayed: false
     }
   }
 
-  async componentDidMount() {
-      const initialMessages = await fetch(`${process.env.REACT_APP_API_URL}/api/messages`)
-      const json = await initialMessages.json()
-      this.setState({messageList: json._embedded.messages})
-  }
-
-  onMessagesStarredToggled = async (index) => {
-    let stateCopy = Object.assign({}, this.state)
-    let item = stateCopy.messageList[index]
-    item.starred = !item.starred
-
-    const request = {messageIds: [item.id], command: 'star', star: item.starred}
-    await fetch(`${process.env.REACT_APP_API_URL}/api/messages`, {
-        method: 'PATCH',
-        body: JSON.stringify(request),
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        }
-    })
-
-    this.setState({
-      messageList: stateCopy.messageList
-    })
+  onMessagesStarredToggled = index => {
+    this.props.toggleMessageStarred(this.props.messageList[index])
   }
 
   onMessageSelectToggled = (index) => {
@@ -158,9 +138,9 @@ class App extends Component {
   }
 
   selectedState = () => {
-      const selectedCount = this.state.messageList.filter(message => message.selected).length
+      const selectedCount = this.props.messageList.filter(message => message.selected).length
       if(selectedCount === 0) return 'none' //none selected
-      else if(selectedCount === this.state.messageList.length) return 'all' //all selected
+      else if(selectedCount === this.props.messageList.length) return 'all' //all selected
       else return 'some' //some selected
   }
 
@@ -198,12 +178,12 @@ class App extends Component {
           onDeleteMessagesClicked={this.onDeleteMessagesClicked}
           onAddLabelClicked={this.onAddLabelClicked}
           onRemoveLabelClicked={this.onRemoveLabelClicked}
-          unreadMessageCount={this.state.messageList.filter(message => !message.read).length}
+          unreadMessageCount={this.props.messageList.filter(message => !message.read).length}
           selectedState={this.selectedState()}
           composeButtonClicked={this.composeButtonClicked}/>
         {this.state.composeMessageDisplayed && <Compose onSendMessageClick={this.onSendMessageClick}/>}
         <MessageList
-          messageList={this.state.messageList}
+          messageList={this.props.messageList}
           onMessagesStarredToggled={this.onMessagesStarredToggled}
           onMessageSelectToggled={this.onMessageSelectToggled}
         />
@@ -212,4 +192,15 @@ class App extends Component {
   }
 }
 
-export default App
+const mapStateToProps = state => ({
+  messageList: state.messageList
+})
+
+const mapDispatchToProps = dispatch => bindActionCreators({
+  toggleMessageStarred
+}, dispatch)
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(App)
