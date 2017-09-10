@@ -4,7 +4,17 @@ import { bindActionCreators } from 'redux'
 import Toolbar from './components/Toolbar'
 import MessageList from './components/MessageList'
 import Compose from './components/Compose'
-import { toggleMessageStarred } from './actions/messageListActions'
+import {  starMessage,
+          unstarMessage,
+          selectMessage,
+          unselectMessage,
+          selectAllMessages,
+          markMessagesRead,
+          markMessagesUnread,
+          addLabel,
+          removeLabel,
+          deleteMessages,
+          sendMessage} from './actions/messageListActions'
 import './App.css'
 
 class App extends Component {
@@ -16,125 +26,43 @@ class App extends Component {
   }
 
   onMessagesStarredToggled = index => {
-    this.props.toggleMessageStarred(this.props.messageList[index])
+    this.props.messageList[index].starred ?
+    this.props.unstarMessage(this.props.messageList[index]) :
+    this.props.starMessage(this.props.messageList[index])
   }
 
-  onMessageSelectToggled = (index) => {
-    let stateCopy = Object.assign({}, this.state)
-    stateCopy.messageList[index].selected = !stateCopy.messageList[index].selected
-
-    this.setState({
-      messageList: stateCopy.messageList
-    })
+  onMessageSelectToggled = index => {
+    this.props.messageList[index].selected ?
+      this.props.unselectMessage(this.props.messageList[index]) :
+      this.props.selectMessage(this.props.messageList[index])
   }
 
   onSelectAllClicked = () => {
-    let stateCopy = Object.assign({}, this.state)
-
-    //if any messages are not starred, star them all, else unstar them all
-    stateCopy.messageList.find(message => !message.selected) ?
-      stateCopy.messageList.map(message =>
-        Object.assign(message, {selected: true})) :
-      stateCopy.messageList.map(message =>
-        Object.assign(message, {selected: false}))
-
-    this.setState({
-      messageList: stateCopy.messageList
-    })
+    this.props.selectAllMessages()
   }
 
-  onMarkMessagesClicked = (isMarkingRead) => {
-    let stateCopy = Object.assign({}, this.state)
-    stateCopy.messageList.map(message => message.selected ? message.read = isMarkingRead : '')
-    this.saveMessagesRead(isMarkingRead, stateCopy.messageList) //broke up async call for tidyness
-
-    this.setState({
-      messageList: stateCopy.messageList
-    })
+  onMarkMessagesRead = () => {
+    this.props.markMessagesRead(this.props.messageList.filter(message => message.selected))
   }
 
-  saveMessagesRead = async (isMarkingRead, messageList) => {
-      const messageIdsList = messageList.filter(message => message.read === isMarkingRead && message.selected)
-
-      const request = {messageIds: messageIdsList.map(message => message.id), command: 'read', read: isMarkingRead}
-      await fetch(`${process.env.REACT_APP_API_URL}/api/messages`, {
-          method: 'PATCH',
-          body: JSON.stringify(request),
-          headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-          }
-      })
+  onMarkMessagesUnread = () => {
+    this.props.markMessagesUnread(this.props.messageList.filter(message => message.selected))
   }
 
-  onDeleteMessagesClicked = async () => {
-    let stateCopy = {...this.state}
-
-    const selectedMessagesList = stateCopy.messageList.filter(message => message.selected)
-    const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'delete'}
-    await fetch(`${process.env.REACT_APP_API_URL}/api/messages`, {
-        method: 'PATCH',
-        body: JSON.stringify(request),
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        }
-    })
-
-    this.setState({
-      messageList: stateCopy.messageList.filter(message => !message.selected)
-    })
+  onDeleteMessagesClicked = () => {
+    this.props.deleteMessages(this.props.messageList.filter(message => message.selected))
   }
 
   onAddLabelClicked = (e) => {
-    let stateCopy = Object.assign({}, this.state)
     //guard against the "Apply label" option
     if(e.target.selectedIndex === 0) return
-
     const selectedLabel = e.target.options[e.target.selectedIndex].text
-    stateCopy.messageList.map(message => message.selected && !message.labels.find(label => label === selectedLabel) ? message.labels.push(selectedLabel) : '')
-
-    this.saveAddedLabel(selectedLabel, stateCopy.messageList) //broke up async call for tidyness
-    this.setState({
-      messageList: stateCopy.messageList
-    })
-  }
-
-  saveAddedLabel = async (selectedLabel, messageList) => {
-      const selectedMessagesList = messageList.filter(message => message.selected && message.labels.find(label => label === selectedLabel))
-      const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'addLabel', label: selectedLabel}
-      await fetch(`${process.env.REACT_APP_API_URL}/api/messages`, {
-          method: 'PATCH',
-          body: JSON.stringify(request),
-          headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-          }
-      })
+    this.props.addLabel(this.props.messageList.filter(message => message.selected), selectedLabel)
   }
 
   onRemoveLabelClicked = (e) => {
-    let stateCopy = Object.assign({}, this.state)
     const selectedLabel = e.target.options[e.target.selectedIndex].text
-    stateCopy.messageList.map(message => message.selected ? message.labels = message.labels.filter(label => label !== selectedLabel) : '')
-    this.saveRemovedLabel(selectedLabel, stateCopy.messageList) //broke up async call for tidyness
-
-      this.setState({
-      messageList: stateCopy.messageList
-    })
-  }
-
-  async saveRemovedLabel(selectedLabel, messageList) {
-      const selectedMessagesList = messageList.filter(message => message.selected && !message.labels.find(label => label === selectedLabel))
-      const request = {messageIds: selectedMessagesList.map(message => message.id), command: 'removeLabel', label: selectedLabel}
-      await fetch(`${process.env.REACT_APP_API_URL}/api/messages`, {
-          method: 'PATCH',
-          body: JSON.stringify(request),
-          headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-          }
-      })
+    this.props.removeLabel(this.props.messageList.filter(message => message.selected), selectedLabel)
   }
 
   selectedState = () => {
@@ -148,23 +76,9 @@ class App extends Component {
     this.setState({composeMessageDisplayed: !this.state.composeMessageDisplayed})
   }
 
-  onSendMessageClick = async (subject, body) => {
-    const request = {"subject": subject, "body": body}
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/messages`, {
-        method: 'POST',
-        body: JSON.stringify(request),
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        }
-    })
-    const responseJson = await response.json()
-    let stateCopy = {...this.state}
-    let {_links, ...newMessage} = responseJson
-    stateCopy.messageList.push(newMessage)
-
+  onSendMessageClick = (subject, body) => {
+    this.props.sendMessage(subject, body)
     this.setState({
-      messageList: stateCopy.messageList,
       composeMessageDisplayed: false //collapse compose new message box after sending message
     })
   }
@@ -174,7 +88,8 @@ class App extends Component {
       <div>
         <Toolbar
           onSelectAllClicked={this.onSelectAllClicked}
-          onMarkMessagesClicked={this.onMarkMessagesClicked}
+          onMarkMessagesReadClicked={this.onMarkMessagesRead}
+          onMarkMessagesUnreadClicked={this.onMarkMessagesUnread}
           onDeleteMessagesClicked={this.onDeleteMessagesClicked}
           onAddLabelClicked={this.onAddLabelClicked}
           onRemoveLabelClicked={this.onRemoveLabelClicked}
@@ -197,7 +112,17 @@ const mapStateToProps = state => ({
 })
 
 const mapDispatchToProps = dispatch => bindActionCreators({
-  toggleMessageStarred
+  starMessage,
+  unstarMessage,
+  selectMessage,
+  unselectMessage,
+  selectAllMessages,
+  markMessagesRead,
+  markMessagesUnread,
+  addLabel,
+  removeLabel,
+  deleteMessages,
+  sendMessage
 }, dispatch)
 
 export default connect(

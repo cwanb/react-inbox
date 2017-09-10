@@ -1,7 +1,8 @@
 import React from 'react'
 
 const Toolbar = ({onSelectAllClicked,
-                onMarkMessagesClicked,
+                onMarkMessagesReadClicked,
+                onMarkMessagesUnreadClicked,
                 onDeleteMessagesClicked,
                 onAddLabelClicked,
                 onRemoveLabelClicked,
@@ -29,11 +30,11 @@ const Toolbar = ({onSelectAllClicked,
           <i className={`fa ${selectIconStyle}`}></i>
         </button>
 
-        <button className="btn btn-default" onClick={() => onMarkMessagesClicked(true)} disabled={readButtonsDisabled}>
+        <button className="btn btn-default" onClick={onMarkMessagesReadClicked} disabled={readButtonsDisabled}>
           Mark As Read
         </button>
 
-        <button className="btn btn-default" onClick={() => onMarkMessagesClicked(false)} disabled={readButtonsDisabled}>
+        <button className="btn btn-default" onClick={onMarkMessagesUnreadClicked} disabled={readButtonsDisabled}>
           Mark As Unread
         </button>
 
