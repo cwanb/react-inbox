@@ -2,21 +2,24 @@ import React from 'react'
 import Message from './Message'
 
 const MessageList = ({messageList,
-                      onMessagesStarredToggled,
+                      onMessageStarredToggled,
                       onMessageReadToggled,
-                      onMessageSelectToggled}) => {
+                      onMessageSelectToggled,
+                      displayBodyOfMessageId}) => {
   return (
     <div>
       {messageList.map((message, index) =>
         <Message
           key={index}
+          id={message.id}
           subject={message.subject}
+          body={message.body}
           read={message.read}
           selected={message.selected}
           starred={message.starred}
           labels={message.labels}
-          onMessagesStarredToggled={() => onMessagesStarredToggled(index)}
-          onMessageReadToggled={() => onMessageReadToggled(index)}
+          shouldDisplayBody={displayBodyOfMessageId === message.id}
+          onMessageStarredToggled={() => onMessageStarredToggled(index)}
           onMessageSelectToggled={() => onMessageSelectToggled(index)}
         />)}
     </div>

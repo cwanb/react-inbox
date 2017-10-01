@@ -68,6 +68,9 @@ export default function messageList(messageList=[], action) {
       return messageList.filter(message => !message.selected)
     case types.SEND_MESSAGE:
       return [...messageList, action.message]
+    case types.FETCH_MESSAGE_BODY:
+      messageList.find(message => message.id === action.messageId).body = action.body
+      return messageList
     default:
       return messageList
   }

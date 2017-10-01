@@ -5,7 +5,7 @@ import registerServiceWorker from './registerServiceWorker';
 import { Provider } from 'react-redux';
 import store from './store';
 import { fetchMessages } from './actions/messageListActions';
-import {BrowserRouter, Route} from "react-router-dom";
+import {BrowserRouter, Route, Switch} from "react-router-dom";
 import 'font-awesome/css/font-awesome.css';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap/dist/css/bootstrap-theme.css';
@@ -17,8 +17,11 @@ ReactDOM.render(
   <Provider store={store}>
     <BrowserRouter>
       <div>
-        <Route exact path='/' component={App} />
-        <Route path='/compose' render={() => (<App composeMessageDisplayed={true} />)} />
+        <Switch>
+          <Route exact path='/' component={App} />
+          <Route path='/compose' component={App} />
+          <Route path='/messages/:id' component={App} />
+        </Switch>
       </div>
     </BrowserRouter>
   </Provider>,

@@ -184,3 +184,15 @@ export function sendMessage(subject, body) {
     })
   }
 }
+
+export function fetchMessageBody(messageId) {
+  return async (dispatch) => {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/messages/${messageId}`)
+    const message = await response.json()
+    dispatch({
+      type: types.FETCH_MESSAGE_BODY,
+      messageId: message.id,
+      body: message.body
+    })
+  }
+}

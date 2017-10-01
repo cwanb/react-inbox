@@ -14,12 +14,46 @@ import {  starMessage,
           addLabel,
           removeLabel,
           deleteMessages,
-          sendMessage } from './actions/messageListActions'
+          sendMessage,
+          fetchMessageBody } from './actions/messageListActions'
 import './App.css'
 
 class App extends Component {
 
-  onMessagesStarredToggled = index => {
+  constructor(props) {
+    super(props)
+    this.state = {
+      composeMessageDisplayed: false,
+      displayBodyOfMessageId: -1
+    }
+  }
+
+  async componentWillReceiveProps(nextProps) {
+    if(nextProps.match.path === '/') {
+      this.setState({composeMessageDisplayed: false,
+                    displayBodyOfMessageId: -1})
+    }
+    else if(nextProps.match.path === '/compose') {
+      this.setState({composeMessageDisplayed: true,
+                    displayBodyOfMessageId: -1})
+    }
+    else if(nextProps.match.path === '/messages/:id') {
+        const messageId = parseInt(nextProps.match.params.id, 10)
+        if(this.state.displayBodyOfMessageId !== messageId) {
+          if(!nextProps.messageList.find(message => message.id === messageId).body) {
+            await nextProps.fetchMessageBody(messageId)
+          }
+          if(!nextProps.messageList.find(message => message.id === messageId).read) {
+            await nextProps.markMessagesRead(nextProps.messageList.filter(message => message.id === messageId))
+          }      
+          this.setState({composeMessageDisplayed: false,
+                        displayBodyOfMessageId: messageId})
+
+        }
+    }
+  }
+
+  onMessageStarredToggled = index => {
     this.props.messageList[index].starred ?
     this.props.unstarMessage(this.props.messageList[index]) :
     this.props.starMessage(this.props.messageList[index])
@@ -68,9 +102,6 @@ class App extends Component {
 
   onSendMessageClick = (subject, body) => {
     this.props.sendMessage(subject, body)
-    this.setState({
-      composeMessageDisplayed: false //collapse compose new message box after sending message
-    })
   }
 
   render() {
@@ -85,12 +116,13 @@ class App extends Component {
           onRemoveLabelClicked={this.onRemoveLabelClicked}
           unreadMessageCount={this.props.messageList.filter(message => !message.read).length}
           selectedState={this.selectedState()}
-          composeMessageDisplayed={this.props.composeMessageDisplayed}/>
-        {this.props.composeMessageDisplayed && <Compose onSendMessageClick={this.onSendMessageClick}/>}
+          composeMessageDisplayed={this.state.composeMessageDisplayed}/>
+        {this.state.composeMessageDisplayed && <Compose onSendMessageClick={this.onSendMessageClick}/>}
         <MessageList
           messageList={this.props.messageList}
-          onMessagesStarredToggled={this.onMessagesStarredToggled}
+          onMessageStarredToggled={this.onMessageStarredToggled}
           onMessageSelectToggled={this.onMessageSelectToggled}
+          displayBodyOfMessageId={this.state.displayBodyOfMessageId} 
         />
       </div>
     )
@@ -112,7 +144,8 @@ const mapDispatchToProps = dispatch => bindActionCreators({
   addLabel,
   removeLabel,
   deleteMessages,
-  sendMessage
+  sendMessage,
+  fetchMessageBody
 }, dispatch)
 
 export default connect(
