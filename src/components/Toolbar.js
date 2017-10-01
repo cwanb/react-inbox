@@ -1,4 +1,5 @@
 import React from 'react'
+import {Link} from 'react-router-dom'
 
 const Toolbar = ({onSelectAllClicked,
                 onMarkMessagesReadClicked,
@@ -8,12 +9,13 @@ const Toolbar = ({onSelectAllClicked,
                 onRemoveLabelClicked,
                 unreadMessageCount,
                 selectedState,
-                composeButtonClicked}) => {
+                composeMessageDisplayed}) => {
   const selectIconStyle = selectedState === 'none'  ? 'fa-square-o' :
                           selectedState === 'all'   ? 'fa-check-square-o' :
                                                       'fa-minus-square-o'
   const readButtonsDisabled = selectedState === 'none'
-
+  const composeLink = composeMessageDisplayed ? '/' : '/compose'
+  const composeLinkIcon = composeMessageDisplayed ? 'fa fa-minus' : 'fa fa-plus'
   return (
     <div className="row toolbar">
       <div className="col-md-12">
@@ -22,9 +24,9 @@ const Toolbar = ({onSelectAllClicked,
           unread message{unreadMessageCount !== 1 && 's'}
         </p>
 
-        <a className="btn btn-danger" onClick={composeButtonClicked}>
-          <i className="fa fa-plus"></i>
-        </a>
+        <Link to={composeLink} className="btn btn-danger">
+          <i className={composeLinkIcon}></i>
+        </Link>
 
         <button className="btn btn-default" onClick={onSelectAllClicked}>
           <i className={`fa ${selectIconStyle}`}></i>

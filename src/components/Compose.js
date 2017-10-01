@@ -1,4 +1,5 @@
 import React from 'react'
+import {Link} from 'react-router-dom'
 
 class Compose extends React.Component {
   constructor(props) {
@@ -38,13 +39,10 @@ class Compose extends React.Component {
           </div>
         </div>
         <div className="form-group">
-          <div className="col-sm-8 col-sm-offset-2">
-            <input type="submit" value="Send" className="btn btn-primary" onClick={
-              (e) => {
-                e.preventDefault()
-                this.props.onSendMessageClick(this.state.subject, this.state.body)
-              }}/>
-          </div>
+          <Link to="/" className="col-sm-8 col-sm-offset-2">
+            <input type="submit" value="Send" className="btn btn-primary" 
+                   onClick={(e) => this.props.onSendMessageClick(this.state.subject, this.state.body)}/>
+          </Link>
         </div>
       </form>)
   }

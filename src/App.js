@@ -14,16 +14,10 @@ import {  starMessage,
           addLabel,
           removeLabel,
           deleteMessages,
-          sendMessage} from './actions/messageListActions'
+          sendMessage } from './actions/messageListActions'
 import './App.css'
 
 class App extends Component {
-  constructor(props) {
-    super(props)
-    this.state = {
-      composeMessageDisplayed: false
-    }
-  }
 
   onMessagesStarredToggled = index => {
     this.props.messageList[index].starred ?
@@ -72,10 +66,6 @@ class App extends Component {
       else return 'some' //some selected
   }
 
-  composeButtonClicked = () => {
-    this.setState({composeMessageDisplayed: !this.state.composeMessageDisplayed})
-  }
-
   onSendMessageClick = (subject, body) => {
     this.props.sendMessage(subject, body)
     this.setState({
@@ -95,8 +85,8 @@ class App extends Component {
           onRemoveLabelClicked={this.onRemoveLabelClicked}
           unreadMessageCount={this.props.messageList.filter(message => !message.read).length}
           selectedState={this.selectedState()}
-          composeButtonClicked={this.composeButtonClicked}/>
-        {this.state.composeMessageDisplayed && <Compose onSendMessageClick={this.onSendMessageClick}/>}
+          composeMessageDisplayed={this.props.composeMessageDisplayed}/>
+        {this.props.composeMessageDisplayed && <Compose onSendMessageClick={this.onSendMessageClick}/>}
         <MessageList
           messageList={this.props.messageList}
           onMessagesStarredToggled={this.onMessagesStarredToggled}
