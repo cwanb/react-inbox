@@ -3,7 +3,6 @@ import Message from './Message'
 
 const MessageList = ({messageList,
                       onMessageStarredToggled,
-                      onMessageReadToggled,
                       onMessageSelectToggled,
                       displayBodyOfMessageId}) => {
   return (
